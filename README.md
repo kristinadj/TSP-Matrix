@@ -20,7 +20,7 @@ upotrebi za rešavanje Traveling Salesman problema.
 
 ### Implementacija
 1. Web api - dobavljanje podataka i dodavanje novih lokacija:
-   - Python + Flusk
+   - Python + Flask
    - PostgreSQL + ekstenzija PostGIS - za rad sa geografskim tipovima podataka za lakšu manipulaciju poligonima i lokacijama
    - rutiranje: http://project-osrm.org/docs/v5.22.0/api/#table-service
 
