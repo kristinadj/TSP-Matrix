@@ -1,0 +1,16 @@
+from .. import db
+
+from geoalchemy2 import Geometry
+
+
+class Polygon(db.Model):
+    """A polygon, including its geospatial data."""
+
+    __tablename__ = 'polygons'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(30), nullable=False, unique=True)
+    geo = db.Column(Geometry(geometry_type='POLYGON', srid=4326), nullable=False)
+
+    def __repr__(self):
+        return '<Polygon {name}>'.format( name=self.polygon_name)
