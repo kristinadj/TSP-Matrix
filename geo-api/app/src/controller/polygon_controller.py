@@ -2,42 +2,29 @@ from flask import request
 from flask_restx import Resource
 
 from ..util.dto import PolygonDTO
-from ..service.polygon_service import get_all, add_polygon, get_by_id
+from ..service.polygon_service import add_polygons, get_all
 
 api = PolygonDTO.api
 _polygon = PolygonDTO.polygon
 
-@api.route('/')
+
+@api.route('')
 class PolygonsCollection(Resource):
-    
-    @api.doc('all polygons')
-    @api.marshal_list_with(_polygon, envelope='data')
-    def get(self):
-        """List of all polygons"""
-        return get_all()
 
-
-    @api.expect(_polygon, validate=True)
-    @api.response(201, 'Polygon successfully created')
-    @api.doc('create a new polygon')
+    @api.expect([_polygon], validate=True)
+    @api.response(201, 'Polygons successfully added')
+    @api.doc('adding polygon')
     def post(self):
-        """Creates a new polygon"""
+        """Adding new polygons"""
         data = request.json
-        return add_polygon(data=data)
+        return add_polygons(data=data)
 
-
-@api.route('/<id>')
-@api.param('id', 'polygon identifier')
-@api.response(404, 'polygon not found')
-class PolygonItem(Resource):
-
-    @api.doc('get a polygon')
-    @api.marshal_with(_polygon)
-    def get(self, id):
-        """Get a polygon given its identitfier"""
-        polygon = get_by_id(id)
-        if not polygon:
-            api.abort(404)
+    @api.doc('get the id of each cluster and the id of its neighbours')
+    def get(self):
+        """Get the id of each cluster and the id of its neighbors"""
+        polygons = get_all()
+        if not polygons:
+            api.abort(400)
         else:
-            return polygon
+            return polygons
 

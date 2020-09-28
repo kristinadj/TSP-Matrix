@@ -1,31 +1,56 @@
 from app.src import db
 from app.src.model.polygon import Polygon
 
+from geoalchemy2 import WKBElement
+from sqlalchemy import func
 
-def add_polygon(data):
-    polygon = Polygon.query.filter_by(name=data['name']).first()
+import functools
+import operator
 
-    if not polygon:
-        new_polygon = Polygon(
-            name=data['name'],
-            geo=data['geo']
-        )
-        save(new_polygon)
 
-        response = {
-            'status': 'success',
-            'message': 'Polygon successfully created'
-        }
-        return response, 201
-    else:
-        response = {
-            'status': 'fail',
-            'message': 'Polygon name already exists'
-        }
-        return response, 400
+def add_polygons(data):
+    for p in data:
+        polygon = Polygon.query.filter_by(name=p['name']).first()
+
+        if not polygon:
+            flatten_coords_list = functools.reduce(operator.iconcat, p['coordinates'], [])
+            flatten_coords_list_str = ['{:.6f}'.format(i) for i in flatten_coords_list]
+            coords_pairs_list = [' '.join(i) for i in zip(flatten_coords_list_str[::2], flatten_coords_list_str[1::2])]
+
+            new_polygon = Polygon(
+                name=p['name'],
+                geo='POLYGON(({:s}))'.format(', '.join(coords_pairs_list))
+            )
+            save(new_polygon)
+        else:
+            response = {
+                'status': 'fail',
+                'message': 'Polygon name ' +  p['name'] + ' already exists'
+            }
+            return response, 400
+    
+    response = {
+        'status': 'success',
+        'message': 'Polygons successfully added'
+    }
+    return response, 201
+
 
 def get_all():
-    return Polygon.query.all()
+    response = []
+    polygons = Polygon.query.all()
+
+    for p in polygons:
+        neighbours_ids = [x.id for x in polygons if x.id != p.id  and db.session.scalar(p.geo.ST_Intersects(x.geo))] 
+
+        polygon = {
+            'id' : p.id,
+            'neighbours_ids' : neighbours_ids
+        }
+        response.append(polygon)
+
+    return response
+
 
 def get_by_id(polygon_id):
     return Polygon.query.filter_by(id=polygon_id).first()
