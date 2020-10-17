@@ -1,7 +1,7 @@
 from flask_restx import Resource
 
 from ..util.dto import GenerateLocationsMatrixDTO
-from ..service.matrix_service import generate_all_polygons, generate_neighbour_polygons
+from ..service.matrix_service import generate_for_all_polygons, generate_for_neighbour_polygons
 
 api = GenerateLocationsMatrixDTO.api
 

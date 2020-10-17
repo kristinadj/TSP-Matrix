@@ -1,0 +1,5 @@
+{
+  "geoApiUrl": "http://localhost:5000",
+  "weight": "duration",
+  "parallel_implementation": false
+}

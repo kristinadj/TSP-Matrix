@@ -74,14 +74,10 @@ def get_poi_links_data(polygon_id):
                               .with_entities(MatrixRow.from_location_id, MatrixRow.to_location_id, MatrixRow.distance, MatrixRow.duration) \
                               .filter( \
                                   (from_location.polygon_id == polygon_id) & \
-                                  (to_location.polygon_id == polygon_id)) \
-                              .filter(
-                                  # cross location - poi
-                                  (from_location.is_cross_location & ~to_location.is_cross_location) | \
-                                  # poi - cross location
-                                  (~from_location.is_cross_location & to_location.is_cross_location) | \
+                                  (to_location.polygon_id == polygon_id) & \
                                   # poi - poi
-                                  (~from_location.is_cross_location & ~to_location.is_cross_location) \
+                                  (~from_location.is_cross_location) & \
+                                  (~to_location.is_cross_location)
                               ) \
                               .all()
 
@@ -97,7 +93,40 @@ def get_poi_links_data(polygon_id):
     return response
 
 
-def generate_all_polygons():
+def get_location_links_data(polygon_id):
+    response = []
+    from_location, to_location = aliased(Location), aliased(Location)
+
+    poi_links_data = MatrixRow.query \
+                              .join(from_location, MatrixRow.from_location_id == from_location.id) \
+                              .join(to_location, MatrixRow.to_location_id == to_location.id) \
+                              .with_entities(MatrixRow.from_location_id, MatrixRow.to_location_id, MatrixRow.distance, MatrixRow.duration) \
+                              .filter( \
+                                  (from_location.polygon_id == polygon_id) & \
+                                  (to_location.polygon_id == polygon_id)) \
+                              .filter(
+                                  # cross location - poi
+                                  (from_location.is_cross_location & ~to_location.is_cross_location) | \
+                                  # poi - cross location
+                                  (~from_location.is_cross_location & to_location.is_cross_location) | \
+                                  # cross location - cross - location
+                                  (from_location.is_cross_location & to_location.is_cross_location) \
+                              ) \
+                              .all()
+
+    for item in poi_links_data:
+        poi_link = {
+            'fromLocation': item[0],
+            'toLocation': item[1],
+            'distance': item[2],
+            'duration': item[3]
+        }
+        response.append(poi_link)
+
+    return response
+
+
+def generate_for_all_polygons():
     polygons = Polygon.query.all()
 
     for polygon in polygons:
@@ -142,7 +171,7 @@ def generate_all_polygons():
     return True
 
 
-def generate_neighbour_polygons():
+def generate_for_neighbour_polygons():
     #polygons = Polygon.query.all()
     polygons = Polygon.query.filter(Polygon.id > 10).all()
 

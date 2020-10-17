@@ -55,6 +55,7 @@ def get_all():
 def get_by_id(polygon_id):
     return Polygon.query.filter_by(id=polygon_id).first()
 
+
 def save(data):
     db.session.add(data)
     db.session.commit()

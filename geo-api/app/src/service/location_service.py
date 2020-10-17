@@ -45,6 +45,11 @@ def add_locations(data):
     return response, 201
 
 
+def get_poi_ids(polygon_id):
+    pois = Location.query.filter((Location.polygon_id == polygon_id) & (~Location.is_cross_location)).all()
+    return [poi.id for poi in pois]
+
+
 def save(data):
     db.session.add(data)
     db.session.commit()
