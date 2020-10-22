@@ -10,8 +10,8 @@ type CrossLocationLinksNeighbourPolygonsDTO struct {
 	ToPolygonID 		int `json:"toPolygon""`
 	FromLocationID 		int `json:"fromLocation""`
 	ToLocationID 		int `json:"toLocation""`
-	Distance			float32 `json:"distance""`
-	Duration			float32 `json:"duration""`
+	Distance			float64 `json:"distance""`
+	Duration			float64 `json:"duration""`
 }
 
 type LocationLinksDTO struct {
@@ -28,8 +28,8 @@ type PoiLinksDTO struct {
 type LinkDTO struct {
 	FromLocationID 		int `json:"fromLocation"`
 	ToLocationID 		int `json:"toLocation"`
-	Distance			float32 `json:"distance"`
-	Duration			float32 `json:"duration"`
+	Distance			float64 `json:"distance"`
+	Duration			float64 `json:"duration"`
 }
 
 

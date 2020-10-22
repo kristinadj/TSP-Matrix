@@ -7,14 +7,16 @@ import (
 // TODO: If path does note exist...
 
 type Graph struct {
-	nodes 	[]int
-	edges 	map[int]map[int]float32
+	nodes 		[]int
+	_nodes		map[int]struct{}
+	edges 		map[int]map[int]float64
 }
 
 func CreateGraph(url, weight string, polygons []PolygonDTO) (graph Graph) {
 	graph = Graph {
 		nodes: []int{},
-		edges: make(map[int]map[int]float32),
+		_nodes: make(map[int]struct{}),
+		edges: make(map[int]map[int]float64),
 	}
 
 	var crossLocationsLinksNeighbourPolygons = getCrossLocationsBetweenNeighbourPolygons(fmt.Sprintf(
@@ -40,15 +42,22 @@ func CreateGraph(url, weight string, polygons []PolygonDTO) (graph Graph) {
 		}
 	}
 
+	graph.nodes = make([]int, 0, len(graph._nodes))
+	for nodeId := range graph._nodes {
+		graph.nodes = append(graph.nodes, nodeId)
+	}
+
 	return graph
 }
 
 
-func (graph Graph) addEdge(u, v int, cost float32) {
-	// TODO: Add nodes
+func (graph Graph) addEdge(u, v int, cost float64) {
+	graph._nodes[u] = struct{}{}
+	graph._nodes[v] = struct{}{}
+
 	if _, ok := graph.edges[u]; !ok {
 		// if edge does not exist, create it
-		graph.edges[u] = make(map[int]float32)
+		graph.edges[u] = make(map[int]float64)
 	}
 	// set cost for edge from u to v
 	graph.edges[u][v] = cost
@@ -61,6 +70,6 @@ func (graph Graph) Neighbours(u int) (nodes []int){
 	return nodes
 }
 
-func (graph Graph) Weight(u int, v int) float32 {
+func (graph Graph) Weight(u int, v int) float64 {
 	return graph.edges[u][v]
 }

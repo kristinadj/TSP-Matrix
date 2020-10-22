@@ -6,19 +6,19 @@ import (
 )
 
 const (
-	Infinity	= math.MaxFloat32
+	Infinity	= math.MaxFloat64
 	Undefined	= -1
 )
 
-func (graph Graph) Dijkstra(sourceNode int) (cost map[int]float32, previous map[int]int) {
-	cost = make(map[int]float32)
+func (graph Graph) Dijkstra(sourceNode int) (cost map[int]float64, previous map[int]int) {
+	cost = make(map[int]float64)
 	previous = make(map[int]int)
 	cost[sourceNode] = 0
 
 	queue := &Queue {
 		items: []int {},
 		index: 	make(map[int]int),
-		priority: make(map[int]float32),
+		priority: make(map[int]float64),
 	}
 
 	for _, v := range graph.nodes {

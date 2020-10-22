@@ -5,7 +5,7 @@ import "container/heap"
 type Queue struct {
 	items 			[]int
 	index 			map[int]int
-	priority		map[int]float32
+	priority		map[int]float64
 }
 
 func (queue *Queue) Len() int {
@@ -38,12 +38,12 @@ func (queue *Queue) Pop() interface{} {
 	return item
 }
 
-func (queue *Queue) Add(item int, priority float32) {
+func (queue *Queue) Add(item int, priority float64) {
 	heap.Push(queue, item)
 	queue.Update(item, priority)
 }
 
-func (queue *Queue) Update(item int, priority float32) {
+func (queue *Queue) Update(item int, priority float64) {
 	queue.priority[item] = priority
 	heap.Fix(queue, queue.index[item])
 }

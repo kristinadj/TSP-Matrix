@@ -172,8 +172,7 @@ def generate_for_all_polygons():
 
 
 def generate_for_neighbour_polygons():
-    #polygons = Polygon.query.all()
-    polygons = Polygon.query.filter(Polygon.id > 10).all()
+    polygons = Polygon.query.all()
 
     for polygon in polygons:
         print(polygon.id)

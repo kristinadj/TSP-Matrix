@@ -13,7 +13,7 @@ class GenerateAllLocationsMatrix(Resource):
     @api.doc('generating for locations inside same polygons')
     def post(self):
         """Generating matrix for all locations inside same polygon"""
-        success = generate_all_polygons()
+        success = generate_for_all_polygons()
 
         if not success:
             api.abort(400)
@@ -26,7 +26,7 @@ class GenerateNeighbourCrossLocationsMatrix(Resource):
     @api.doc('generating for cross locations in neighbour polygons')
     def post(self):
         """Generating matrix for cross locations in neighbour polygons"""
-        success = generate_neighbour_polygons()
+        success = generate_for_neighbour_polygons()
 
         if not success:
             api.abort(400)
