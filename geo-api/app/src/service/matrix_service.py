@@ -6,8 +6,10 @@ from app.src.model.matrix_row import MatrixRow
 
 from sqlalchemy import func
 from sqlalchemy.orm import aliased, joinedload
-
+from geoalchemy2 import functions
 import requests
+import sys
+
 
 
 def get_cross_locations_data():
@@ -36,6 +38,28 @@ def get_cross_locations_data():
     
     return response
 
+
+def get_cross_locations_data_csv():
+    result = []
+    from_location, to_location = aliased(Location), aliased(Location)
+
+    cross_locations_data = MatrixRow.query \
+                                     .join(from_location, MatrixRow.from_location_id == from_location.id) \
+                                     .join(to_location, MatrixRow.to_location_id == to_location.id) \
+                                     .with_entities(from_location.latitude, from_location.longitude, from_location.name, \
+                                                    to_location.latitude, to_location.longitude, to_location.name) \
+                                     .filter(from_location.is_cross_location & \
+                                             to_location.is_cross_location & \
+                                            (from_location.polygon_id != to_location.polygon_id)) \
+                                     .all()
+
+    for item in cross_locations_data:   
+        opposit_link = [item[3], item[4], item[5], True, item[0], item[1], item[2], True]
+        if opposit_link not in result:
+            cross_location_link = [item[0], item[1], item[2], True, item[3], item[4], item[5], True]
+            result.append(cross_location_link)
+
+    return result
 
 
 def get_cross_locations_links_data(polygon_id):
@@ -125,6 +149,36 @@ def get_location_links_data(polygon_id):
 
     return response
 
+def get_location_links_data_csv(polygon_id):
+    result = []
+    from_location, to_location = aliased(Location), aliased(Location)
+
+    poi_links_data = MatrixRow.query \
+                              .join(from_location, MatrixRow.from_location_id == from_location.id) \
+                              .join(to_location, MatrixRow.to_location_id == to_location.id) \
+                              .with_entities(from_location.latitude, from_location.longitude, from_location.name, from_location.is_cross_location, \
+                                             to_location.latitude, to_location.longitude, to_location.name, to_location.is_cross_location) \
+                              .filter( \
+                                  (from_location.polygon_id == polygon_id) & \
+                                  (to_location.polygon_id == polygon_id)) \
+                              .filter(
+                                  # cross location - poi
+                                  (from_location.is_cross_location & ~to_location.is_cross_location) | \
+                                  # poi - cross location
+                                  (~from_location.is_cross_location & to_location.is_cross_location) | \
+                                  # cross location - cross - location
+                                  (from_location.is_cross_location & to_location.is_cross_location) \
+                              ) \
+                              .all()
+
+    for item in poi_links_data:
+        opposit_link = [item[4], item[5], item[6], item[7],item[0], item[1], item[2], item[3]]
+        if opposit_link not in result:
+            cross_location_link = [item[0], item[1], item[2], item[3], item[4], item[5], item[6], item[7]]
+            result.append(cross_location_link)
+
+    return result
+
 
 def generate_for_all_polygons():
     polygons = Polygon.query.all()
@@ -177,7 +231,7 @@ def generate_for_neighbour_polygons():
     for polygon in polygons:
         print(polygon.id)
         neighbours = db.session.query(Polygon).filter((Polygon.id != polygon.id) & (func.ST_Intersects(Polygon.geo, polygon.geo))).all()
-        neighbours_ids = [x.id for x in neighbours]
+        neighbours_ids = [x.id for x in neighbours if 'POINT' not in db.session.scalar(functions.ST_AsText(functions.ST_Intersection(polygon.geo, x.geo)))]
 
         polygon_cross_locations = Location.query.filter((Location.polygon_id == polygon.id) & (Location.is_cross_location == True)).all()
         neighbours_cross_locations = Location.query.filter((Location.polygon_id.in_(neighbours_ids)) & (Location.is_cross_location == True)).all()
@@ -185,24 +239,24 @@ def generate_for_neighbour_polygons():
         if len(polygon_cross_locations) + len(neighbours_cross_locations) == 1:
             continue
 
+        size = len(polygon_cross_locations) + len(neighbours_cross_locations)
         osrm_table = _get_osrm_table_response_s2d(polygon_cross_locations, neighbours_cross_locations)
 
         if not osrm_table:
             return False
-        
-        for i in range(len(polygon_cross_locations)):
-            for j in range(len(neighbours_cross_locations)):
-                # direction i -> j
-                row = MatrixRow.query.filter((MatrixRow.from_location_id == polygon_cross_locations[i].id) & (MatrixRow.to_location_id == neighbours_cross_locations[j].id)).first()
 
-                if not row:
-                    row = MatrixRow(
-                        from_location_id=polygon_cross_locations[i].id,
-                        to_location_id=neighbours_cross_locations[j].id,
-                        distance = osrm_table['distances'][i][j],
-                        duration =  osrm_table['durations'][i][j]
-                    )
-                    db.session.add(row)
+        for i in range(len(polygon_cross_locations)):
+            nearest_idx = _find_nearest(i, osrm_table)
+            row = MatrixRow.query.filter((MatrixRow.from_location_id == polygon_cross_locations[i].id) & (MatrixRow.to_location_id == neighbours_cross_locations[nearest_idx].id)).first()
+
+            if not row:
+                row = MatrixRow(
+                    from_location_id=polygon_cross_locations[i].id,
+                    to_location_id=neighbours_cross_locations[nearest_idx].id,
+                    distance = osrm_table['distances'][i][nearest_idx],
+                    duration =  osrm_table['durations'][i][nearest_idx]
+                )
+                db.session.add(row)
         db.session.commit()
     
     return True
@@ -229,10 +283,23 @@ def _get_osrm_table_response_s2d(source_locations, destination_locations):
     locations = source_locations + destination_locations
     str_coords = ['{:.6f},{:.6f}'.format(i.longitude, i.latitude) for i in locations]
     url = url.replace('@COORDS@', ';'.join(str_coords))
-
+    #print(url)
     osrm_response = requests.get(url)
     
     if osrm_response.status_code == 200:
         return osrm_response.json()
     
     return None
+
+
+def _find_nearest(idx, osrm_table):
+    min_distance = sys.maxsize
+    nearest_idx = None
+
+    for j in range(len(osrm_table['distances'][idx])):
+        distance = osrm_table['distances'][idx][j]
+        if distance < min_distance:
+            min_distance = distance
+            nearest_idx = j
+    
+    return nearest_idx

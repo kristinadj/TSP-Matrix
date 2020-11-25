@@ -1,0 +1,44 @@
+| v map e tab |
+tab := RTTabTable new
+	input:
+		(TRPlatform current
+			download:
+				'http://localhost:5000/api/matrix/exportCSV')
+			contents
+	usingDelimiter: $,.
+tab convertColumnsAsFloat: #(1 2 5 6).
+v := RTView new.
+map := RTOSM new.
+e := map element.
+v add: e.
+line := RTLine color: Color green. 
+tab values
+	do: [ :row | 
+		n1 := (RTEllipse new 
+							width: 1;
+							height: 1; 
+							color: (
+								(row fourth = 'True')
+								ifTrue: [ Color purple alpha: 0.7 ] 
+						 		ifFalse: [ Color red alpha: 0.7 ]
+							)) elementOn: row third .
+		n1 @ RTPopup .
+		n1 @ RTHighlightable.
+		n1 translateTo: (map latLonToRoassal: row first @ row second).
+		n2 := (RTEllipse new 
+							width: 1;
+							height: 1; 
+							color: (
+								(row eighth  = 'True')
+								ifTrue: [ Color purple alpha: 0.7 ] 
+						 		ifFalse: [ Color red alpha: 0.7 ]
+							)) elementOn: row seventh .
+		n2 @ RTPopup .
+		n2 @ RTHighlightable.
+		n2 translateTo: (map latLonToRoassal: row fifth  @ row sixth).
+		v add: n1.
+		v add: n2.
+		v add: (line edgeFrom: n1 to: n2 )].
+v @ RTDraggableView @ RTZoomableView.
+RTEmptyViewContext setOnView: v.
+^ v

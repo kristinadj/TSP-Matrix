@@ -50,6 +50,17 @@ def get_poi_ids(polygon_id):
     return [poi.id for poi in pois]
 
 
+def get_pois_csv_format():    
+    pois = Location.query.all()
+
+    csv_list = []
+    for poi in pois:
+        poi_fields = [poi.latitude, poi.longitude, poi.name, poi.is_cross_location]
+        csv_list.append(poi_fields)
+        
+    return csv_list
+
+
 def save(data):
     db.session.add(data)
     db.session.commit()

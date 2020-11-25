@@ -2,9 +2,8 @@ package main
 
 import (
 	"fmt"
+	"sync"
 )
-
-// TODO: If path does note exist...
 
 type Graph struct {
 	nodes 		[]int
@@ -12,7 +11,7 @@ type Graph struct {
 	edges 		map[int]map[int]float64
 }
 
-func CreateGraph(url, weight string, polygons []PolygonDTO) (graph Graph) {
+func CreateGraphSequential(url, weight string, polygons []PolygonDTO) (graph Graph) {
 	graph = Graph {
 		nodes: []int{},
 		_nodes: make(map[int]struct{}),
@@ -50,6 +49,54 @@ func CreateGraph(url, weight string, polygons []PolygonDTO) (graph Graph) {
 	return graph
 }
 
+func CreateGraphParallel(url, weight string, polygons []PolygonDTO) (graph Graph) {
+	graph = Graph {
+		nodes: []int{},
+		_nodes: make(map[int]struct{}),
+		edges: make(map[int]map[int]float64),
+	}
+
+	var crossLocationsLinksNeighbourPolygons = getCrossLocationsBetweenNeighbourPolygons(fmt.Sprintf(
+		"%s/matrix/crossLocationLinks/neighbourPolygons", url))
+
+	for _, link := range crossLocationsLinksNeighbourPolygons {
+		if weight == "distance" {
+			graph.addEdge(link.FromLocationID, link.ToLocationID, link.Distance)
+		} else {
+			graph.addEdge(link.FromLocationID, link.ToLocationID, link.Duration)
+		}
+	}
+
+	var wg sync.WaitGroup
+	locationsLinksList := make([]*LocationLinksDTO, len(polygons))
+	for i, polygon := range polygons {
+		wg.Add(1)
+		go func(i int, polygon PolygonDTO) {
+			defer wg.Done()
+			var locationsLinks = getLocationLinks(fmt.Sprintf(
+				"%s/matrix/locationLinks/%d", url, polygon.ID), polygon.ID)
+			locationsLinksList[i] = &locationsLinks
+		}(i, polygon)
+	}
+	wg.Wait()
+
+	for _, item := range locationsLinksList {
+		for _, link := range item.LocationLinks {
+			if weight == "distance" {
+				graph.addEdge(link.FromLocationID, link.ToLocationID, link.Distance)
+			} else {
+				graph.addEdge(link.FromLocationID, link.ToLocationID, link.Duration)
+			}
+		}
+	}
+
+	graph.nodes = make([]int, 0, len(graph._nodes))
+	for nodeId := range graph._nodes {
+		graph.nodes = append(graph.nodes, nodeId)
+	}
+
+	return graph
+}
 
 func (graph Graph) addEdge(u, v int, cost float64) {
 	graph._nodes[u] = struct{}{}

@@ -15,7 +15,7 @@ api = Api(blueprint,
           description='...'
           )
 
-api.add_namespace(polygon_namespace, path='/polygon')
-api.add_namespace(location_namespace, path='/location')
-api.add_namespace(generate_matrix_namespace, path='/generateMatrix')
-api.add_namespace(matrix_namespace, path='/matrix')
+api.add_namespace(polygon_namespace, path='/api/polygon')
+api.add_namespace(location_namespace, path='/api/location')
+api.add_namespace(generate_matrix_namespace, path='/api/generateMatrix')
+api.add_namespace(matrix_namespace, path='/api/matrix')

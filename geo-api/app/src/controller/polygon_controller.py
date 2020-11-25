@@ -23,8 +23,5 @@ class PolygonsCollection(Resource):
     def get(self):
         """Get the id of each cluster and the id of its neighbors"""
         polygons = get_all()
-        if not polygons:
-            api.abort(400)
-        else:
-            return polygons
+        return polygons
 

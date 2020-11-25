@@ -52,6 +52,11 @@ def get_all():
     return response
 
 
+def get_polygon_ids():
+    polygons = Polygon.query.all()
+    return [polygon.id for polygon in polygons]
+
+
 def get_by_id(polygon_id):
     return Polygon.query.filter_by(id=polygon_id).first()
 
